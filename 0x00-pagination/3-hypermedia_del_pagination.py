@@ -2,20 +2,16 @@
 """Imported modules"""
 import csv
 import math
-from typing import Dict, List, Tuple
-
-
-def index_range(page: int, page_size: int) -> Tuple[int, int]:
-    """The function definition"""
-    return ((page - 1) * page_size, ((page - 1) * page_size) + page_size)
+from typing import Dict, List
 
 
 class Server:
-    """The function class"""
+    """The class definition"""
     DATA_FILE = "Popular_Baby_Names.csv"
 
     def __init__(self):
         self.__dataset = None
+        self.__indexed_dataset = None
 
     def dataset(self) -> List[List]:
         """The function definition"""
@@ -27,36 +23,26 @@ class Server:
 
         return self.__dataset
 
-    def get_page(self, page: int = 1, page_size: int = 10) -> List[List]:
-        """the function definition"""
-        assert type(page) == int and type(page_size) == int
-        assert page > 0 and page_size > 0
-        start, end = index_range(page, page_size)
-        data = self.dataset()
-        if start > len(data):
-            return []
-        return data[start:end]
+    def indexed_dataset(self) -> Dict[int, List]:
+        """The function definition"""
+        if self.__indexed_dataset is None:
+            dataset = self.dataset()
+            truncated_dataset = dataset[:1000]
+            self.__indexed_dataset = {
+                i: dataset[i] for i in range(len(dataset))
+            }
+        return self.__indexed_dataset
 
     def get_hyper_index(self, index: int = None, page_size: int = 10) -> Dict:
-        """The function definition"""
-        data = self.indexed_dataset()
-        assert index is not None and index >= 0 and index <= max(data.keys())
-        page_data = []
-        data_count = 0
-        next_index = None
-        start = index if index else 0
-        for i, item in data.items():
-            if i >= start and data_count < page_size:
-                page_data.append(item)
-                data_count += 1
-                continue
-            if data_count == page_size:
-                next_index = i
-                break
-        page_info = {
-            'index': index,
-            'next_index': next_index,
-            'page_size': len(page_data),
-            'data': page_data,
-        }
-        return page_info
+        """the function definition"""
+        focus = []
+        dataset = self.indexed_dataset()
+        index = 0 if index is None else index
+        keys = sorted(dataset.keys())
+        assert index >= 0 and index <= keys[-1]
+        [focus.append(i)
+         for i in keys if i >= index and len(focus) <= page_size]
+        data = [dataset[v] for v in focus[:-1]]
+        next_index = focus[-1] if len(focus) - page_size == 1 else None
+        return {'index': index, 'data': data,
+                'page_size': len(data), 'next_index': next_index}
